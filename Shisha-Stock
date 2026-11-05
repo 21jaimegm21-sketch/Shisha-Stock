@@ -1,0 +1,38 @@
+const KEY='mi-stock-v1';
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||{tobacco:[],coals:0,history:[]};
+const $=id=>document.getElementById(id);
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(data));render()};
+const log=(text)=>{data.history.unshift({text,at:new Date().toLocaleString('es-ES')});data.history=data.history.slice(0,100)};
+function render(){
+ $('coalCount').textContent=data.coals;
+ $('stockList').innerHTML=data.tobacco.length?data.tobacco.map((p,i)=>`<div class="stock-item"><strong>${esc(p.brand)} · ${esc(p.flavor)}</strong><span class="amount">${p.grams} g</span><div class="muted">En inventario</div></div>`).join(''):'<p class="empty">Todavía no hay tabaco añadido.</p>';
+ $('consumeProduct').innerHTML='<option value="">Selecciona tabaco</option>'+data.tobacco.map((p,i)=>`<option value="${i}">${esc(p.brand)} · ${esc(p.flavor)} (${p.grams} g)</option>`).join('');
+ $('history').innerHTML=data.history.length?data.history.map(h=>`<div class="history-item">${esc(h.text)}<small>${esc(h.at)}</small></div>`).join(''):'<p class="empty">Aún no hay movimientos.</p>';
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('addTobacco').onclick=()=>{let brand=$('brand').value.trim(),flavor=$('flavor').value.trim(),grams=Number($('grams').value);if(!brand||!flavor||!Number.isInteger(grams)||grams<=0){alert('Introduce marca, sabor y gramos válidos.');return}data.tobacco.push({brand,flavor,grams});log(`Añadidos ${grams} g de ${brand} · ${flavor}`);$('brand').value='';$('flavor').value='';$('grams').value='';save()};
+$('addCoal').onclick=()=>{let n=Number($('coalAdd').value);if(!Number.isInteger(n)||n<=0){alert('Introduce unidades válidas.');return}data.coals+=n;log(`Añadidos ${n} carbones`);$('coalAdd').value='';save()};
+$('useTobacco').onclick=()=>{let i=Number($('consumeProduct').value),n=Number($('consumeGrams').value);if($('consumeProduct').value===''||!Number.isInteger(n)||n<=0){alert('Selecciona un tabaco e indica los gramos.');return}if(!data.tobacco[i]||data.tobacco[i].grams<n){alert('No hay suficientes gramos en stock.');return}let p=data.tobacco[i];p.grams-=n;log(`Consumidos ${n} g de ${p.brand} · ${p.flavor}`);if(!p.grams)data.tobacco.splice(i,1);$('consumeGrams').value='';save()};
+$('useCoal').onclick=()=>{let n=Number($('coalUse').value);if(!Number.isInteger(n)||n<=0){alert('Introduce unidades válidas.');return}if(n>data.coals){alert('No hay suficientes carbones.');return}data.coals-=n;log(`Consumidos ${n} carbones`);$('coalUse').value='';save()};
+$('clearHistory').onclick=()=>{if(confirm('¿Borrar todo el historial de movimientos?')){data.history=[];save()}};
+render();
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+
+MI STOCK
+CONTROL DE INVENTARIO
+➕ Añadir tabaco
+Marca Sabor Gramos
+Añadir tabaco
+🔥 Añadir carbones
+Unidades Añadir carbones
+📦 Stock actual
+Carbones disponibles: 0
+Todavía no hay tabaco añadido.
+➖ Registrar consumo
+ProductoSelecciona tabaco Gramos utilizados Descontar gramos Carbones utilizados Descontar carbones
+🧾 Movimientos
+Aún no hay movimientos.
+Borrar movimientos
+Los datos se guardan en este iPhone. No necesitas conexión después de abrir la app por primera vez.
+*{box-sizing:border-box} :root{color-scheme:dark} body{margin:0;background:#101010;color:#f4f0ea;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 15px env(safe-area-inset-bottom);position:relative;min-height:100vh}body:before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 15% 20%,#40200d66,transparent 45%),radial-gradient(ellipse at 90% 65%,#9b3d0e30,transparent 40%),linear-gradient(135deg,#101010,#191512);z-index:-2}.smoke{position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.13;background:repeating-radial-gradient(ellipse at 70% 15%,transparent 0 35px,#aaa 38px 40px,transparent 43px 75px);filter:blur(12px)}header{text-align:center;padding:28px 0 20px}.brand{font-weight:900;font-size:32px;letter-spacing:5px}.brand span{color:#ff7518}.subtitle{font-size:10px;letter-spacing:3px;color:#aaa;margin-top:5px}main{max-width:650px;margin:auto}.panel{background:#1b1b1bf2;border:1px solid #50301e;border-radius:16px;padding:17px;margin:13px 0;box-shadow:0 8px 24px #0006}h2{font-size:17px;margin:0 0 15px;color:#ff8a36}label{display:block;font-size:13px;color:#c9c3bc;margin:10px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid label:last-child{grid-column:1/-1}input,select{display:block;width:100%;margin-top:6px;padding:13px;border-radius:10px;border:1px solid #51463d;background:#101010;color:white;font-size:16px;outline:none}input:focus,select:focus{border-color:#ff7518}button{width:100%;padding:14px;border:0;border-radius:10px;background:#f47721;color:#15100c;font-size:15px;font-weight:800;margin-top:8px}button.secondary{background:#34302c;color:#ff9b55;border:1px solid #8b4b22}.danger{background:#39201a;color:#ff9a76;border:1px solid #743a28}.coal-stock{background:#2a211b;padding:13px;border-radius:10px;margin-bottom:10px}.coal-stock strong{color:#ff8a36;font-size:22px;margin-left:8px}.stock-item,.history-item{padding:12px 0;border-bottom:1px solid #39332e}.stock-item:last-child,.history-item:last-child{border:0}.stock-item strong{color:#fff}.muted,.empty{color:#9b948d;font-size:13px}.amount{float:right;color:#ff9b55;font-weight:800}.history-item{font-size:13px}.history-item small{display:block;color:#999;margin-top:4px}footer{text-align:center;color:#777;font-size:11px;padding:15px 5px 28px;max-width:600px;margin:auto}@media(min-width:600px){body{padding-left:24px;padding-right:24px}.grid{grid-template-columns:1fr 1fr 1fr}.grid label:last-child{grid-column:auto}}
+const CACHE='mi-stock-cache-v1';const FILES=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));self.addEventListener('fetch',e=>{if(e.request.method==='GET')e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('./index.html'))))});
